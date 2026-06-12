@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de Planilla — Rinconada Country Club</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --black:#0a0a0a;
+    --black-soft:#161616;
+    --white:#ffffff;
+    --off-white:#f4f4f2;
+    --red:#c8102e;
+    --red-dark:#8f0b20;
+    --line:#2a2a2a;
+    --gray:#8a8a8a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    background:var(--black);
+    color:var(--off-white);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ===== HEADER ===== */
+  header{
+    width:100%;
+    background:linear-gradient(180deg, var(--black-soft) 0%, var(--black) 100%);
+    border-bottom:3px solid var(--red);
+    padding:28px 20px 22px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+    position:relative;
+  }
+  header::after{
+    content:"";
+    position:absolute;
+    bottom:-3px; left:0; right:0;
+    height:3px;
+    background:repeating-linear-gradient(90deg, var(--red) 0 18px, transparent 18px 36px);
+    opacity:.6;
+  }
+  .logo-wrap{
+    width:74px; height:74px;
+    border-radius:50%;
+    background:var(--white);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    border:2px solid var(--red);
+    box-shadow:0 0 0 5px var(--black-soft), 0 4px 16px rgba(200,16,46,.35);
+  }
+  .logo-wrap img{ width:100%; height:100%; object-fit:contain; }
+  h1{
+    font-size:1.5rem;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    font-weight:800;
+    text-align:center;
+  }
+  h1 span{color:var(--red);}
+  .subtitle{
+    color:var(--gray);
+    font-size:.8rem;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    text-align:center;
+  }
+
+  /* ===== MAIN ===== */
+  main{
+    width:100%;
+    max-width:980px;
+    padding:32px 20px 60px;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+  }
+
+  /* Upload zone */
+  .upload-card{
+    background:var(--black-soft);
+    border:1px dashed var(--line);
+    border-radius:4px;
+    padding:36px 24px;
+    text-align:center;
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .upload-card.dragover{
+    border-color:var(--red);
+    background:#1d1313;
+  }
+  .upload-card h2{
+    font-size:1rem;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    margin-bottom:8px;
+    color:var(--white);
+  }
+  .upload-card p{
+    color:var(--gray);
+    font-size:.85rem;
+    margin-bottom:18px;
+  }
+  .file-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--red);
+    color:var(--white);
+    border:none;
+    padding:12px 28px;
+    font-size:.8rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-weight:700;
+    border-radius:2px;
+    cursor:pointer;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .file-btn:hover{ background:var(--red-dark); }
+  .file-btn:active{ transform:scale(.98); }
+  #fileInput{ display:none; }
+  .file-name{
+    margin-top:14px;
+    font-size:.8rem;
+    color:var(--white);
+    word-break:break-all;
+  }
+  .error-msg{
+    margin-top:14px;
+    font-size:.8rem;
+    color:var(--red);
+    border:1px solid var(--red-dark);
+    background:rgba(200,16,46,.08);
+    padding:10px 14px;
+    border-radius:2px;
+    display:none;
+  }
+
+  /* Results */
+  #results{ display:none; flex-direction:column; gap:28px; }
+
+  .meta-bar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    background:var(--black-soft);
+    border:1px solid var(--line);
+    border-left:4px solid var(--red);
+    padding:18px 22px;
+    border-radius:2px;
+  }
+  .meta-item{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:130px;
+  }
+  .meta-item .label{
+    font-size:.68rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gray);
+  }
+  .meta-item .value{
+    font-size:1.15rem;
+    font-weight:800;
+    color:var(--white);
+  }
+  .meta-item .value .accent{ color:var(--red); }
+
+  /* Section block */
+  .section{
+    background:var(--black-soft);
+    border:1px solid var(--line);
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    padding:16px 22px;
+    border-bottom:1px solid var(--line);
+    background:var(--black);
+  }
+  .section-head h3{
+    font-size:.85rem;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    font-weight:800;
+    color:var(--white);
+  }
+  .section-head h3::before{
+    content:"";
+    display:inline-block;
+    width:10px; height:10px;
+    background:var(--red);
+    margin-right:10px;
+    border-radius:1px;
+    vertical-align:middle;
+    transform:translateY(-1px);
+  }
+  .section-head .count{
+    font-size:.75rem;
+    color:var(--gray);
+    letter-spacing:.08em;
+  }
+  .section-body{ padding:18px 22px 22px; }
+
+  /* Age table */
+  .age-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(86px,1fr));
+    gap:10px;
+  }
+  .age-cell{
+    background:var(--black);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:12px 8px;
+    text-align:center;
+  }
+  .age-cell .num{
+    font-size:1.4rem;
+    font-weight:800;
+    color:var(--white);
+  }
+  .age-cell .lbl{
+    font-size:.68rem;
+    letter-spacing:.1em;
+    color:var(--gray);
+    text-transform:uppercase;
+    margin-top:2px;
+  }
+  .age-cell.has .num{ color:var(--red); }
+  .age-cell.exceeds{ border-color:#5b9bf0; background:rgba(91,155,240,.08); }
+  .age-cell.exceeds .num{ color:#5b9bf0; }
+  .age-cell.below{ border-color:#e0a83a; background:rgba(224,168,58,.08); }
+  .age-cell.below .num{ color:#e0a83a; }
+
+  /* Generic table */
+  table{ width:100%; border-collapse:collapse; font-size:.85rem; }
+  th, td{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); }
+  th{
+    text-transform:uppercase;
+    font-size:.68rem;
+    letter-spacing:.12em;
+    color:var(--gray);
+    font-weight:700;
+  }
+  td{ color:var(--off-white); }
+  tr:last-child td{ border-bottom:none; }
+  td.num, th.num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .row-accent td.num{ color:var(--red); font-weight:800; }
+  .row-accent-cell{ color:var(--red); font-weight:800; }
+
+  .alert-banner{
+    background:rgba(200,16,46,.12);
+    border:1px solid var(--red);
+    color:var(--white);
+    font-size:.82rem;
+    padding:10px 14px;
+    border-radius:2px;
+    margin-bottom:14px;
+  }
+  .alert-cell{
+    text-align:center;
+    font-size:1.1rem;
+  }
+
+  /* Status grid */
+  .status-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(160px,1fr));
+    gap:12px;
+  }
+  .status-card{
+    background:var(--black);
+    border:1px solid var(--line);
+    border-left:3px solid var(--red);
+    border-radius:2px;
+    padding:14px 16px;
+  }
+  .status-card.c-socio{ border-left-color:#c8102e; }
+  .status-card.c-invitado{ border-left-color:#3a7bd5; }
+  .status-card.c-socio-ex{ border-left-color:#e0a83a; }
+  .status-card.c-invitado-ex{ border-left-color:#5fb878; }
+  .status-card.c-federada{ border-left-color:#b06ad8; }
+  .status-card.c-otro{ border-left-color:var(--gray); }
+  .status-card.c-socio .num{ color:#c8102e; }
+  .status-card.c-invitado .num{ color:#5b9bf0; }
+  .status-card.c-socio-ex .num{ color:#e0a83a; }
+  .status-card.c-invitado-ex .num{ color:#5fb878; }
+  .status-card.c-federada .num{ color:#c08af0; }
+  .status-card.c-otro .num{ color:var(--gray); }
+  .status-card .num{
+    font-size:1.7rem;
+    font-weight:800;
+    color:var(--white);
+  }
+  .status-card .lbl{
+    font-size:.7rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--gray);
+    margin-top:2px;
+  }
+
+  .empty-note{
+    color:var(--gray);
+    font-size:.82rem;
+    font-style:italic;
+  }
+
+  .alt-group{ margin-bottom:18px; }
+  .alt-group:last-child{ margin-bottom:0; }
+  .alt-group-title{
+    font-size:.78rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    font-weight:800;
+    color:var(--red);
+    margin-bottom:8px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:6px;
+  }
+  .alt-group-count{
+    color:var(--gray);
+    font-weight:400;
+    text-transform:none;
+    letter-spacing:normal;
+  }
+
+  .reset-btn{
+    align-self:flex-start;
+    background:transparent;
+    color:var(--gray);
+    border:1px solid var(--line);
+    padding:9px 18px;
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    border-radius:2px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .reset-btn:hover{
+    color:var(--white);
+    border-color:var(--red);
+  }
+
+  footer{
+    width:100%;
+    text-align:center;
+    padding:18px;
+    font-size:.7rem;
+    letter-spacing:.12em;
+    color:var(--gray);
+    text-transform:uppercase;
+    border-top:1px solid var(--line);
+  }
+  footer .red{ color:var(--red); }
+
+  @media (max-width:520px){
+    h1{ font-size:1.1rem; letter-spacing:.1em; }
+    .meta-item{ min-width:100px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <img src="https://raw.githubusercontent.com/reiki004/interclubes/main/logo%20inter.png" alt="Logo Interclubes Perú 2026" loading="eager">
+  </div>
+  <h1>Análisis de <span>Planilla</span> de Jugadores</h1>
+  <div class="subtitle">Carga el archivo de inscripción y revisa el resumen automático</div>
+</header>
+
+<main>
+
+  <div class="upload-card" id="uploadCard">
+    <h2>Cargar archivo Excel</h2>
+    <p>Selecciona o arrastra el archivo .xlsx con la planilla de inscripción</p>
+    <button class="file-btn" id="browseBtn">Seleccionar archivo</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <div class="file-name" id="fileName"></div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div id="results">
+
+    <div class="meta-bar" id="metaBar"></div>
+
+    <div class="section">
+      <div class="section-head">
+        <h3>Distribución por edad</h3>
+        <span class="count" id="ageCount"></span>
+      </div>
+      <div class="section-body">
+        <div class="age-grid" id="ageGrid"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h3>Categoría alterna</h3>
+        <span class="count" id="altCount"></span>
+      </div>
+      <div class="section-body" id="altBody"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h3 id="underageTitle">Menores de edad para la categoría</h3>
+        <span class="count" id="underageCount"></span>
+      </div>
+      <div class="section-body" id="underageBody"></div>
+    </div>
+
+
+    <div class="section">
+      <div class="section-head">
+        <h3>Distribución por status</h3>
+        <span class="count" id="statusCount"></span>
+      </div>
+      <div class="section-body">
+        <div class="status-grid" id="statusGrid"></div>
+      </div>
+    </div>
+
+    <button class="reset-btn" id="resetBtn">Cargar otro archivo</button>
+
+  </div>
+
+</main>
+
+<footer>Interclubes <span class="red">Perú 2026</span> · Sistema de análisis de inscripciones</footer>
+
+<script>
+const uploadCard = document.getElementById('uploadCard');
+const fileInput = document.getElementById('fileInput');
+const browseBtn = document.getElementById('browseBtn');
+const fileNameEl = document.getElementById('fileName');
+const errorMsg = document.getElementById('errorMsg');
+const results = document.getElementById('results');
+const resetBtn = document.getElementById('resetBtn');
+
+browseBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  if(e.target.files.length) handleFile(e.target.files[0]);
+});
+
+['dragover','dragleave','drop'].forEach(evt=>{
+  uploadCard.addEventListener(evt, e=>{
+    e.preventDefault();
+    if(evt==='dragover') uploadCard.classList.add('dragover');
+    if(evt==='dragleave'||evt==='drop') uploadCard.classList.remove('dragover');
+  });
+});
+uploadCard.addEventListener('drop', e=>{
+  if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+
+resetBtn.addEventListener('click', ()=>{
+  results.style.display='none';
+  fileNameEl.textContent='';
+  errorMsg.style.display='none';
+  fileInput.value='';
+});
+
+function showError(msg){
+  errorMsg.textContent = msg;
+  errorMsg.style.display='block';
+  results.style.display='none';
+}
+
+function handleFile(file){
+  errorMsg.style.display='none';
+  fileNameEl.textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array', cellDates:true});
+      processWorkbook(wb);
+    }catch(err){
+      console.error(err);
+      showError('No se pudo leer el archivo. Verifica que sea un Excel válido (.xlsx).');
+    }
+  };
+  reader.onerror = ()=> showError('Error al cargar el archivo.');
+  reader.readAsArrayBuffer(file);
+}
+
+// ----- Helpers -----
+function parseDate(val){
+  if(val instanceof Date && !isNaN(val)) return val;
+  if(typeof val === 'number'){
+    // Excel serial date
+    const d = XLSX.SSF.parse_date_code(val);
+    if(d) return new Date(d.y, d.m-1, d.d);
+  }
+  if(typeof val === 'string'){
+    const s = val.trim();
+    // dd/mm/yyyy
+    let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if(m) return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]));
+    // yyyy-mm-dd
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
+    const d2 = new Date(s);
+    if(!isNaN(d2)) return d2;
+  }
+  return null;
+}
+
+function calcAge(birth, ref){
+  let age = ref.getFullYear() - birth.getFullYear();
+  const m = ref.getMonth() - birth.getMonth();
+  if(m < 0 || (m===0 && ref.getDate() < birth.getDate())) age--;
+  return age;
+}
+
+// Treat values that are only -, ., *, / (or combinations/whitespace of these) as blank
+function cleanCell(val){
+  if(val === null || val === undefined) return null;
+  const s = String(val).trim();
+  if(s === '') return null;
+  if(/^[-.*\/\s]+$/.test(s)) return null;
+  return val;
+}
+
+function formatDate(d){
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function normStatus(s){
+  if(!s) return null;
+  return String(s).trim().toUpperCase().replace(/\s+/g,' ');
+}
+
+function processWorkbook(wb){
+  const sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+
+  // Read full grid as array of arrays to locate headers + H6
+  const grid = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+
+  // Categoria from H6 (row index 5, col index 7)
+  let categoriaH6 = null;
+  if(grid[5] && grid[5][7] !== undefined) categoriaH6 = cleanCell(grid[5][7]);
+
+  // Find header row: looks for "APELLIDOS"
+  let headerRowIdx = -1;
+  for(let i=0;i<grid.length;i++){
+    const row = grid[i] || [];
+    if(row.some(c => typeof c === 'string' && c.trim().toUpperCase() === 'APELLIDOS')){
+      headerRowIdx = i; break;
+    }
+  }
+  if(headerRowIdx === -1) throw new Error('No se encontraron las cabeceras esperadas.');
+
+  const headerRow = grid[headerRowIdx].map(c => c===null?'':String(c).trim().toUpperCase());
+
+  const idx = {
+    apellidos: headerRow.findIndex(h=>h==='APELLIDOS'),
+    nombres: headerRow.findIndex(h=>h==='NOMBRES'),
+    fecha: headerRow.findIndex(h=>h.startsWith('FECHA NACIMIENTO')),
+    dni: headerRow.findIndex(h=>h.startsWith('DNI')),
+    categoria: headerRow.findIndex(h=>h==='CATEGORIA'),
+    catAlterna: headerRow.findIndex(h=>h.startsWith('CATEGORIA ALTERNA')),
+    status: headerRow.findIndex(h=>h.startsWith('STATUS')),
+    codigoSocio: headerRow.findIndex(h=>h.startsWith('CODIGO SOCIO'))
+  };
+
+  if(idx.apellidos===-1 || idx.fecha===-1 || idx.status===-1){
+    throw new Error('El archivo no tiene las columnas esperadas (APELLIDOS, FECHA NACIMIENTO, STATUS).');
+  }
+
+  // Collect player rows until we hit "COMANDO TECNICO" row, or until 40 valid players, or empty row pattern
+  const players = [];
+  const MAX_PLAYERS = 40;
+  for(let i=headerRowIdx+1; i<grid.length; i++){
+    const row = grid[i] || [];
+    // Stop if any cell in the row signals the COMANDO TECNICO/DELEGADO section
+    if(row.some(c => typeof c === 'string' && /COMANDO\s*TECNICO|DELEGADO/i.test(c))) break;
+
+    const apellido = row[idx.apellidos];
+    if(apellido === null || apellido === undefined || String(apellido).trim()==='') continue;
+
+    players.push({
+      apellidos: String(apellido).trim(),
+      nombres: row[idx.nombres] !== undefined ? String(row[idx.nombres]||'').trim() : '',
+      fechaNac: cleanCell(row[idx.fecha]),
+      dni: cleanCell(row[idx.dni]),
+      categoria: cleanCell(row[idx.categoria]),
+      catAlterna: idx.catAlterna!==-1 ? cleanCell(row[idx.catAlterna]) : null,
+      status: idx.status!==-1 ? cleanCell(row[idx.status]) : null,
+      codigoSocio: idx.codigoSocio!==-1 ? cleanCell(row[idx.codigoSocio]) : null
+    });
+
+    if(players.length >= MAX_PLAYERS) break;
+  }
+
+  if(players.length === 0) throw new Error('No se encontraron jugadores en la planilla.');
+
+  renderResults({categoriaH6, players, fileSheet: sheetName});
+}
+
+function renderResults({categoriaH6, players}){
+  const today = new Date();
+
+  // ----- Meta bar -----
+  const metaBar = document.getElementById('metaBar');
+  metaBar.innerHTML = '';
+  addMeta(metaBar, 'Categoría (H6)', categoriaH6 !== null && categoriaH6 !== undefined ? String(categoriaH6) : '—', true);
+  addMeta(metaBar, 'Total jugadores', players.length, true);
+  addMeta(metaBar, 'Fecha de análisis', formatDate(today), false);
+
+  // Categoría numérica (para comparaciones de edad)
+  // Extraer número de categoría desde H6, incluso si el texto contiene
+  // "15", "18" o "21" dentro de una cadena (ej. "SUB 15", "CATEGORIA 18 DAMAS")
+  const catNum = (function(){
+    const text = String(categoriaH6 ?? '');
+    if(/\b15\b/.test(text)) return 15;
+    if(/\b18\b/.test(text)) return 18;
+    if(/\b21\b/.test(text)) return 21;
+    const n = parseFloat(text);
+    return isNaN(n) ? NaN : n;
+  })();
+  const youthCats = [15, 18, 21];
+  const isYouthCat = !isNaN(catNum) && youthCats.includes(catNum);
+  const adultCats = [30, 40, 48, 53, 58, 62, 66, 70];
+  const isAdultCat = !isNaN(catNum) && adultCats.includes(catNum);
+
+  // ----- Edad -----
+  const ageCounts = {};
+  let validAges = 0;
+  players.forEach(p=>{
+    const d = parseDate(p.fechaNac);
+    if(d){
+      const age = calcAge(d, today);
+      ageCounts[age] = (ageCounts[age]||0)+1;
+      validAges++;
+    }
+  });
+  document.getElementById('ageCount').textContent = `${validAges} de ${players.length} con fecha válida`;
+  const ageGrid = document.getElementById('ageGrid');
+  ageGrid.innerHTML = '';
+  Object.keys(ageCounts).map(Number).sort((a,b)=>a-b).forEach(age=>{
+    const cell = document.createElement('div');
+    const exceeds = !isNaN(catNum) && !isAdultCat && age > catNum;
+    const below = isAdultCat && age <= catNum - 2;
+    let cls = 'age-cell has';
+    if(exceeds) cls += ' exceeds';
+    if(below) cls += ' below';
+    cell.className = cls;
+    cell.innerHTML = `<div class="num">${ageCounts[age]}</div><div class="lbl">${age} años</div>`;
+    ageGrid.appendChild(cell);
+  });
+  if(Object.keys(ageCounts).length===0){
+    ageGrid.innerHTML = '<div class="empty-note">No se pudieron calcular edades.</div>';
+  }
+
+  // ----- Categoría alterna -----
+  const altCounts = {};
+  const altPlayers = {};
+  let altTotal = 0;
+  players.forEach(p=>{
+    const v = p.catAlterna;
+    if(v !== null && v !== undefined && String(v).trim() !== ''){
+      const key = String(v).trim();
+      altCounts[key] = (altCounts[key]||0)+1;
+      if(!altPlayers[key]) altPlayers[key] = [];
+      altPlayers[key].push(p);
+      altTotal++;
+    }
+  });
+  document.getElementById('altCount').textContent = `${altTotal} jugador(es)`;
+  const altBody = document.getElementById('altBody');
+  if(altTotal === 0){
+    altBody.innerHTML = '<div class="empty-note">Ningún jugador tiene categoría alterna asignada.</div>';
+  }else{
+    let html = '';
+    Object.keys(altCounts).sort().forEach(k=>{
+      html += `<div class="alt-group">`;
+      html += `<div class="alt-group-title">Categoría ${k} <span class="alt-group-count">(${altCounts[k]})</span></div>`;
+      html += `<table><thead><tr><th>Apellidos</th><th>Nombres</th></tr></thead><tbody>`;
+      altPlayers[k].forEach(p=>{
+        html += `<tr><td>${p.apellidos}</td><td>${p.nombres}</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    });
+    altBody.innerHTML = html;
+  }
+
+  // ----- Status -----
+  const statusOrder = ['SOCIO','INVITADO','SOCIO EX PRO','INVITADO EX PRO','FEDERADA'];
+  const statusCounts = {};
+  players.forEach(p=>{
+    const raw = normStatus(p.status);
+    if(!raw) return;
+    let mapped;
+    if(/^SOCIO\b.*EX/.test(raw)) mapped = 'SOCIO EX PRO';
+    else if(/^INVITAD[OA]\b.*EX/.test(raw)) mapped = 'INVITADO EX PRO';
+    else if(/^FEDERAD/.test(raw)) mapped = 'FEDERADA';
+    else if(/^SOCIO\b/.test(raw)) mapped = 'SOCIO';
+    else if(/^INVITAD[OA]$/.test(raw)) mapped = 'INVITADO';
+    else mapped = raw;
+    statusCounts[mapped] = (statusCounts[mapped]||0)+1;
+  });
+
+  const isDamas = categoriaH6 !== null && categoriaH6 !== undefined &&
+                  String(categoriaH6).trim().toUpperCase().includes('DAMAS');
+
+  const statusGrid = document.getElementById('statusGrid');
+  statusGrid.innerHTML = '';
+
+  let displayList = [...statusOrder];
+  if(!isDamas) displayList = displayList.filter(s=>s!=='FEDERADA');
+
+  const statusColorClass = {
+    'SOCIO':'c-socio',
+    'INVITADO':'c-invitado',
+    'SOCIO EX PRO':'c-socio-ex',
+    'INVITADO EX PRO':'c-invitado-ex',
+    'FEDERADA':'c-federada'
+  };
+
+  displayList.forEach(label=>{
+    const count = statusCounts[label] || 0;
+    const card = document.createElement('div');
+    card.className = `status-card ${statusColorClass[label]||'c-otro'}`;
+    card.innerHTML = `<div class="num">${count}</div><div class="lbl">${label}</div>`;
+    statusGrid.appendChild(card);
+  });
+
+  // Any other / unrecognized statuses
+  Object.keys(statusCounts).forEach(k=>{
+    if(!statusOrder.includes(k)){
+      const card = document.createElement('div');
+      card.className = 'status-card c-otro';
+      card.innerHTML = `<div class="num">${statusCounts[k]}</div><div class="lbl">${k}</div>`;
+      statusGrid.appendChild(card);
+    }
+  });
+
+  document.getElementById('statusCount').textContent = isDamas ? 'Categoría DAMAS — incluye Federadas' : 'Federadas no aplica (categoría no es DAMAS)';
+
+  // ----- Menores/Mayores de edad para la categoría -----
+  const underageBody = document.getElementById('underageBody');
+  const underageCountEl = document.getElementById('underageCount');
+
+  // Categories 15, 18, 21 are youth categories: flag players OLDER than the category.
+  // Categories 30,40,48,53,58,62,66,70: flag players 2+ years YOUNGER than the category.
+  document.getElementById('underageTitle').innerHTML = isYouthCat
+    ? 'Mayores de edad para la categoría'
+    : 'Menores de edad para la categoría';
+
+  if(isNaN(catNum) || (!isYouthCat && !isAdultCat)){
+    underageCountEl.textContent = '—';
+    underageBody.innerHTML = '<div class="empty-note">No aplica comparación de edad para esta categoría.</div>';
+  }else{
+    const flagged = [];
+    players.forEach(p=>{
+      const d = parseDate(p.fechaNac);
+      if(d){
+        const age = calcAge(d, today);
+        const matches = isYouthCat ? (age > catNum) : (age <= catNum - 2);
+        if(matches){
+          flagged.push({...p, age, fechaStr: formatDate(d)});
+        }
+      }
+    });
+    underageCountEl.textContent = `${flagged.length} jugador(es) (categoría ${catNum})`;
+    if(flagged.length === 0){
+      underageBody.innerHTML = isYouthCat
+        ? '<div class="empty-note">Ningún jugador supera la edad de la categoría.</div>'
+        : '<div class="empty-note">Ningún jugador tiene 2 o más años menos que la categoría.</div>';
+    }else{
+      document.getElementById('underageTitle').innerHTML = isYouthCat
+        ? '⚠️ Mayores de edad para la categoría'
+        : '⚠️ Menores de edad para la categoría';
+      const bannerText = isYouthCat
+        ? '⚠️ Estos jugadores superan la edad permitida por la categoría.'
+        : '⚠️ Estos jugadores no deberían estar en esta planilla según su edad.';
+      let html = `<div class="alert-banner">${bannerText}</div>`;
+      html += '<table><thead><tr><th>Apellidos</th><th>Nombres</th><th>Fecha de nacimiento</th><th class="num">Edad</th><th></th></tr></thead><tbody>';
+      flagged.forEach(p=>{
+        html += `<tr><td>${p.apellidos}</td><td>${p.nombres}</td><td>${p.fechaStr}</td><td class="num row-accent-cell">${p.age}</td><td class="alert-cell">⚠️</td></tr>`;
+      });
+      html += '</tbody></table>';
+      underageBody.innerHTML = html;
+    }
+  }
+
+  results.style.display = 'flex';
+}
+
+function addMeta(container, label, value, accent){
+  const div = document.createElement('div');
+  div.className = 'meta-item';
+  div.innerHTML = `<div class="label">${label}</div><div class="value">${accent? `<span class="accent">${value}</span>` : value}</div>`;
+  container.appendChild(div);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificador de Jugadores</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --court-green: #141414;
+    --court-green-deep: #0d0d0d;
+    --line-white: #f5f5f5;
+    --clay: #c81e1e;
+    --clay-soft: #f3b3b3;
+    --ink: #1a1a1a;
+    --paper: #ffffff;
+    --gray: #767676;
+    --ok-bg: #fdecec;
+    --ok-border: #c81e1e;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  .topbar{
+    background: var(--court-green);
+    color: var(--line-white);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 4px solid var(--clay);
+  }
+  .topbar::after{
+    content:"";
+    position:absolute;
+    right: -40px; top: -60px;
+    width: 220px; height: 220px;
+    border: 2px solid rgba(200,30,30,0.18);
+    border-radius: 50%;
+  }
+  .topbar::before{
+    content:"";
+    position:absolute;
+    right: 40px; top: 30px;
+    width: 120px; height: 120px;
+    border: 2px solid rgba(200,30,30,0.14);
+    border-radius: 50%;
+  }
+  .topbar-inner{
+    display:flex;
+    align-items:center;
+    gap: 18px;
+    position: relative;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+  .topbar-logo{
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .topbar h1{
+    margin: 0 0 6px 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    position: relative;
+    color: var(--line-white);
+  }
+  .topbar p{
+    margin: 0;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.78rem;
+    color: var(--clay-soft);
+    position: relative;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 600px){
+    .topbar-inner{ flex-direction: column; align-items: flex-start; gap: 12px; }
+    .topbar-logo{ width: 52px; height: 52px; }
+  }
+
+
+  .container{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .card{
+    background: #fff;
+    border: 1px solid #e3ddd1;
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 1px 3px rgba(28,36,33,0.04);
+  }
+
+  .card h2{
+    font-size: 1.05rem;
+    margin: 0 0 14px 0;
+    color: var(--court-green-deep);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid var(--clay);
+    padding-bottom: 8px;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .badge{
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0.3px;
+    background: var(--ok-bg);
+    color: var(--ok-border);
+    border: 1px solid var(--ok-border);
+    border-radius: 20px;
+    padding: 3px 12px;
+    white-space: nowrap;
+  }
+
+  .dropzone{
+    border: 2px dashed #c9c1b0;
+    border-radius: 10px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #fdfcf9;
+  }
+  .dropzone:hover, .dropzone.dragover{
+    border-color: var(--clay);
+    background: #fbf3ee;
+  }
+  .dropzone .icon{
+    font-size: 2.4rem;
+    display:block;
+    margin-bottom: 10px;
+  }
+  .dropzone .main-text{
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .dropzone .sub-text{
+    font-size: 0.8rem;
+    color: var(--gray);
+  }
+  input[type="file"]{ display:none; }
+
+  .file-info{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    background: #fdfcf9;
+    border: 1px solid #e3ddd1;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+  }
+  .file-info button{
+    border:none;
+    background: transparent;
+    color: var(--clay);
+    cursor:pointer;
+    font-weight: 600;
+    font-size: 0.8rem;
+    font-family: inherit;
+  }
+
+  .options-row{
+    display:flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 16px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+  }
+  .options-row label{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .slider-wrap{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex:1;
+    min-width: 220px;
+  }
+  .slider-wrap input[type="range"]{
+    flex:1;
+    accent-color: var(--clay);
+  }
+  .slider-val{
+    font-weight: 700;
+    color: var(--clay);
+    min-width: 38px;
+    text-align:right;
+  }
+
+  .actions{
+    margin-top: 18px;
+    display:flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  button.primary{
+    background: var(--clay);
+    color: #fff;
+    border: none;
+    padding: 12px 26px;
+    border-radius: 6px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s ease;
+  }
+  button.primary:hover{ background: #a9461f; }
+  button.primary:disabled{
+    background: #d8cfc2;
+    cursor: not-allowed;
+  }
+
+  button.secondary{
+    background: transparent;
+    color: var(--court-green-deep);
+    border: 1.5px solid var(--court-green-deep);
+    padding: 11px 22px;
+    border-radius: 6px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  button.secondary:hover{
+    background: var(--court-green-deep);
+    color: #fff;
+  }
+
+  .status-line{
+    margin-top: 14px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+    color: var(--gray);
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .spinner{
+    width: 14px; height:14px;
+    border: 2px solid var(--clay-soft);
+    border-top-color: var(--clay);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display:inline-block;
+  }
+  @keyframes spin{ to { transform: rotate(360deg); } }
+
+  /* Results */
+  .results-summary{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.9rem;
+    color: var(--ink);
+    margin-bottom: 14px;
+  }
+  .results-summary strong{ color: var(--court-green-deep); font-size: 1.4rem; }
+
+  table{
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.85rem;
+  }
+  thead th{
+    text-align:left;
+    background: var(--court-green-deep);
+    color: var(--line-white);
+    padding: 10px 12px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  thead th:first-child{ border-radius: 6px 0 0 0; }
+  thead th:last-child{ border-radius: 0 6px 0 0; }
+  tbody td{
+    padding: 9px 12px;
+    border-bottom: 1px solid #ece6d8;
+  }
+  tbody tr:nth-child(odd){ background: #fdfcf9; }
+  tbody tr:hover{ background: var(--ok-bg); }
+  .match-tag{
+    display:inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .match-exact{ background: var(--ok-bg); color: var(--ok-border); }
+  .match-fuzzy{ background: #fdf0e3; color: var(--clay); }
+
+  .empty-state{
+    text-align:center;
+    padding: 30px 10px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: var(--gray);
+  }
+  .empty-state .icon{ font-size: 2.2rem; display:block; margin-bottom: 8px; }
+
+  .footer-note{
+    text-align:center;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.75rem;
+    color: var(--gray);
+    margin-top: 30px;
+  }
+
+  /* update db panel */
+  details.db-panel summary{
+    cursor: pointer;
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-weight: 700;
+    color: var(--court-green-deep);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  details.db-panel[open] summary{ margin-bottom: 14px; }
+  .db-meta{
+    font-family:'Helvetica Neue', Arial, sans-serif;
+    font-size: 0.8rem;
+    color: var(--gray);
+    margin-bottom: 12px;
+  }
+
+  @media (max-width: 600px){
+    .topbar h1{ font-size: 1.3rem; }
+    .card{ padding: 16px; }
+    table{ font-size: 0.75rem; }
+    thead th, tbody td{ padding: 7px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <img src="data:image/png;base64,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" alt="Logo" class="topbar-logo">
+    <div>
+      <h1>Verificador de suspendidos en dos categor&iacute;as</h1>
+      <p>Cruce de suspendidos contra padr&oacute;n de jugadores en 2 categor&iacute;as<br>Apertura Atrevia Interclubes PlayzonBet 2026</p>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Base de datos <span class="badge" id="dbBadge">239 jugadores cargados</span></h2>
+    <details class="db-panel">
+      <summary>Actualizar base de datos (Excel)</summary>
+      <p class="db-meta" id="dbMeta">
+        Actualmente se usa la lista incluida por defecto (239 jugadores, columnas: APELLIDOS Y NOMBRES, CAT., CAT. 2, CLUB).
+        Si subes un nuevo Excel, se usar&aacute; en su lugar para esta sesi&oacute;n.
+      </p>
+      <div class="dropzone" id="excelDrop">
+        <span class="icon">&#128202;</span>
+        <div class="main-text">Arrastra o haz clic para subir un Excel (.xlsx)</div>
+        <div class="sub-text">Debe tener la columna "APELLIDOS Y NOMBRES"</div>
+        <input type="file" id="excelInput" accept=".xlsx,.xls">
+      </div>
+      <div class="file-info" id="excelInfo" style="display:none;">
+        <span id="excelInfoText"></span>
+        <button id="excelReset">Usar lista por defecto</button>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Archivo PDF</h2>
+    <div class="dropzone" id="pdfDrop">
+      <span class="icon">&#128196;</span>
+      <div class="main-text">Arrastra o haz clic para subir el PDF</div>
+      <div class="sub-text">Lista de jugadores agrupada por categor&iacute;as</div>
+      <input type="file" id="pdfInput" accept=".pdf">
+    </div>
+    <div class="file-info" id="pdfInfo" style="display:none;">
+      <span id="pdfInfoText"></span>
+      <button id="pdfReset">Quitar</button>
+    </div>
+
+    <div class="options-row">
+      <div class="slider-wrap">
+        <span>Sensibilidad de coincidencia</span>
+        <input type="range" id="threshold" min="70" max="100" value="88">
+        <span class="slider-val" id="thresholdVal">88%</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="processBtn" disabled>Verificar coincidencias</button>
+    </div>
+
+    <div class="status-line" id="statusLine" style="display:none;">
+      <span class="spinner"></span>
+      <span id="statusText">Procesando...</span>
+    </div>
+  </div>
+
+  <div class="card" id="resultsCard" style="display:none;">
+    <h2>Resultados <span class="badge" id="resultsBadge"></span></h2>
+    <div id="resultsContent"></div>
+  </div>
+
+  <div class="footer-note">
+    La comparaci&oacute;n ignora tildes, may&uacute;sculas/min&uacute;sculas, signos de puntuaci&oacute;n y el orden de las palabras.
+  </div>
+
+</div>
+
+<script>
+const PLAYERS_DB = [{"nombre": "DIAZ LORENZO, PABLO RAUL", "cat1": "40", "cat2": "48", "club": "ALAMEDA"}, {"nombre": "GUZMAN CARRANZA, CARLOS ANDRES", "cat1": "40", "cat2": "48", "club": "ALAMEDA"}, {"nombre": "YAÑEZ NOVOA, DANIEL MOISES", "cat1": "40", "cat2": "48", "club": "ALAMEDA"}, {"nombre": "ALVARADO ZULOETA, PAUL RENATO", "cat1": "48", "cat2": "40", "club": "ALAMEDA"}, {"nombre": "HIDALGO VALERA, BORIS KATIUSCO", "cat1": "48", "cat2": "53", "club": "ALAMEDA"}, {"nombre": "NARANJO BUSTIOS, MARIANO RENZO", "cat1": "48", "cat2": "40", "club": "ALAMEDA"}, {"nombre": "HELOU ZARIQUIEY, MANUEL MAURICIO JORGE", "cat1": "40", "cat2": "48", "club": "ÁRABE PALESTINO"}, {"nombre": "BULLON CALDERON, PETER ROBINSON", "cat1": "48", "cat2": "CAT. 40", "club": "ÁRABE PALESTINO"}, {"nombre": "OBLITAS VILLAMARIN, JUAN FERNANDO", "cat1": "48", "cat2": "CAT.40", "club": "ÁRABE PALESTINO"}, {"nombre": "ODE JAIME, ADEL GEORGE", "cat1": "48", "cat2": "CAT.40", "club": "ÁRABE PALESTINO"}, {"nombre": "CASIS ODE, ALEX YACOUB", "cat1": "58", "cat2": "48", "club": "ÁRABE PALESTINO"}, {"nombre": "FARFAN GARCIA, LARRY", "cat1": "48", "cat2": "53", "club": "BOSQUE"}, {"nombre": "PACHAS MENDEZ, ENRIQUE", "cat1": "48", "cat2": "53", "club": "BOSQUE"}, {"nombre": "PEÑA SERRANO, PIERO", "cat1": "48", "cat2": "53", "club": "BOSQUE"}, {"nombre": "REYNA ALEGRIA, WALTER", "cat1": "48", "cat2": "53", "club": "BOSQUE"}, {"nombre": "ALVAREZ PAREJA, FERNANDO JULIO", "cat1": "53", "cat2": "58", "club": "BOSQUE"}, {"nombre": "MARROQUIN VALDIVIEZO, MARCO ANTONIO LAUREANO", "cat1": "53", "cat2": "58", "club": "BOSQUE"}, {"nombre": "SANTAMARIA SILVA, MARCOS ANTONIO", "cat1": "53", "cat2": "48", "club": "BOSQUE"}, {"nombre": "FERNANDEZ MALDONADO FUENTES, HERMES", "cat1": "58", "cat2": "62", "club": "BOSQUE"}, {"nombre": "MAZZINI MARANGUNIC, ALDO TOMAS", "cat1": "58", "cat2": "53", "club": "BOSQUE"}, {"nombre": "GARCES PEÑARANDA, JAVIER", "cat1": "62", "cat2": "66", "club": "BOSQUE"}, {"nombre": "PENAGOS MELGAR, JUAN CARLOS", "cat1": "62", "cat2": "66", "club": "BOSQUE"}, {"nombre": "PUENTE MARIN, ALDO JHONNY", "cat1": "62", "cat2": "58", "club": "BOSQUE"}, {"nombre": "ACUÑA VIDAL, MIGUEL HECTOR", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "AVALOS CANALES, CESAR GUILLERMO", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "CABREJOS CARRASCO, FERNAN FRANCISCO", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "CONDOR EVARISTO, GUILLERMO MIGUEL", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "DIAZ SAENZ, VICTOR MELCHOR", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "FRANCO ARNAIZ, JOSE LUIS", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "HOEMPLER GUTIERREZ, GUILLERMO", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "MEDINA ALVAREZ, DANIEL JOB", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "MEDINA CASTILLO, ALBERTO MARIANO", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "NOREÑA CONCHUCOS, CHARLES ROGER", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "PANTA PALACIOS, SEGUNDO PEDRO", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "PESANTES VELASQUEZ, ROBERTO", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "QUIÑONEZ EGUSQUIZA, JUAN", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "REYNOSO MIRANDA, JULIAN", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "ROJAS ROBLES, JAVIER ELISEO", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "VERGARA ANCAYA, LUIS", "cat1": "70", "cat2": "66", "club": "BOSQUE"}, {"nombre": "DOLCI SARDELLA, LUIS ANTONIO", "cat1": "40", "cat2": "30", "club": "CC.VILLA"}, {"nombre": "LOPEZ DE ROMAÑA GALLOFRE, DIEGO ALFONSO", "cat1": "40", "cat2": "30", "club": "CC.VILLA"}, {"nombre": "PRADA SIMPSON, CESAR GUILLERMO", "cat1": "40", "cat2": "30", "club": "CC.VILLA"}, {"nombre": "BOERO ZUNINO, ALDO ANGEL", "cat1": "53", "cat2": "58", "club": "CC.VILLA"}, {"nombre": "REYNA PERALTA, LUIS ANGEL JOSE", "cat1": "53", "cat2": "58", "club": "CC.VILLA"}, {"nombre": "RUSSO GONZALEZ, RAMIRO FEDERICO", "cat1": "53", "cat2": "58", "club": "CC.VILLA"}, {"nombre": "PFLUCKER ZEVALLOS, PATRICIO", "cat1": "58", "cat2": "53", "club": "CC.VILLA"}, {"nombre": "PAEZ FOSSA, JORGE ANTONIO", "cat1": "48", "cat2": "53", "club": "CENTRO NAVAL"}, {"nombre": "CASAFRANCA SALGADO, CLAUDIO JAMS", "cat1": "53", "cat2": "58", "club": "CENTRO NAVAL"}, {"nombre": "PRADA VEGA, SOLON PEDRO LUIS", "cat1": "53", "cat2": "58", "club": "CENTRO NAVAL"}, {"nombre": "ZUAZO DEL ÁGUILA, HERBERT ADOLFO", "cat1": "53", "cat2": "48", "club": "CENTRO NAVAL"}, {"nombre": "ALFARO CARLIN, JORGE FRANCISCO", "cat1": "58", "cat2": "53", "club": "CENTRO NAVAL"}, {"nombre": "CABALLERO PAULET, FERNANDO JAVIER", "cat1": "58", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "CALDERON SANCHEZ, JUAN CARLOS", "cat1": "58", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "CORNEJO SOTO, GONZALO JUAN", "cat1": "58", "cat2": "53", "club": "CENTRO NAVAL"}, {"nombre": "MEZA REGAL, RICARDO ERNESTO", "cat1": "58", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "LOPEZ TORRES GONZALES, RUBEN RICARDO", "cat1": "66", "cat2": "70", "club": "CENTRO NAVAL"}, {"nombre": "MARTINEZ APONTE, JOSE DUANY", "cat1": "66", "cat2": "70", "club": "CENTRO NAVAL"}, {"nombre": "TIRADO SILVA, JOSE EDUARDO", "cat1": "66", "cat2": "70", "club": "CENTRO NAVAL"}, {"nombre": "AGUILAR PALOMINO, IVAN MAXIMO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "APUMAYTA VICENTE, CARLOS", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "BONTEMPS GUEVARA, GINO ROBERTO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "CORRALES RIVEROS, JOSE LUIS", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "CORZO CASTILLO, CARLOS IVAN", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "COTRINA ALVARADO, ROGER LUIS", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "DE LA PUENTE RIBEYRO, JORGE ANTONIO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "FLORES CACERES, FERNANDO LUIS", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "FONTELLA PADILLA, MAXIMO GUILLERMO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "GARRIDO GARCIA, ALEJANDRO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "OYARCE DELGADO, WALTER ARTURO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "PERALTA BOGGIANO, SAMUEL ORLANDO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "QUIROZ ROJAS, EDUARDO ENRIQUE", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "REVOREDO AYLLON, RICARDO EDMUNDO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "RUIZ PALACIOS, ANGEL GUSTAVO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "SANCHEZ CASANOVA, HUMBERTO AMADEO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "ZAVALA ARMEJO, ALBERTO ANTONIO", "cat1": "70", "cat2": "66", "club": "CENTRO NAVAL"}, {"nombre": "ZEA FERNANDEZ, EDUARD GIORGIO PAOLO", "cat1": "LIBRE", "cat2": "30", "club": "CENTRO NAVAL"}, {"nombre": "FLORES BRACO, BRYAN KENNEX", "cat1": "30", "cat2": "LIBRE", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "RIGACCI OBLITAS, NELDO ALESSIO MARIO", "cat1": "30", "cat2": "LIBRE", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "CAZORLA ROJAS, JUAN CARLOS", "cat1": "40", "cat2": "30", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "MARTICORENA FOSSA, DIEGO", "cat1": "40", "cat2": "30", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "RAMOS SANCHEZ, JOSE GIANCARLO", "cat1": "40", "cat2": "30", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "AREVALO TALLEDO, JUAN CARLOS", "cat1": "48", "cat2": "40", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "CARREÑO MACHER, JONATHAN ANIBAL", "cat1": "48", "cat2": "40", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "REYES CAPO, JOSE PAUL", "cat1": "48", "cat2": "40", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "VALLVE SAAVEDRA, MARCO ANTONIO", "cat1": "48", "cat2": "53", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "YUPANQUI ARTADI, REYNALDO RICARDO", "cat1": "48", "cat2": "53", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "LOREDO PECHO, JAVIER", "cat1": "53", "cat2": "48", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "REY MIRANDA, MAURICIO", "cat1": "53", "cat2": "48", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "CABANILLAS MENDOZA, JUAN CARLOS", "cat1": "58", "cat2": "62", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "CUBAS SALAZAR, WALTER ARTURO", "cat1": "58", "cat2": "53", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "ECHEVARRIA CAJAMARCA, CARLOS ALBERTO WILLIAMS", "cat1": "58", "cat2": "62", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "FLORES MERINO, SANTIAGO ELEODORO", "cat1": "58", "cat2": "62", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "GALDOS OCAMPO, CESAR ALFREDO JESUS", "cat1": "58", "cat2": "53", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "MONTALVO SANCHEZ, OSCAR OMAR", "cat1": "58", "cat2": "53", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "ZIGNAIGO HUARCAYA, JAVIER ERNANI", "cat1": "58", "cat2": "53", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "AZCARATE MULLER, EDUARDO ALBERTO", "cat1": "66", "cat2": "62", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "GUTIERREZ CALDERON, JUAN HERNAN", "cat1": "66", "cat2": "62", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "VEGA BONADONA, OSCAR ALFREDO", "cat1": "66", "cat2": "62", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "AVILES VILLANUEVA, JORGE WILLIAM CELESTINO", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "CARDENAS VELASQUEZ, WILLIAM DARIO", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "CARRANZA OTERO, OSCAR LORENZO", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "ESLAVA CALVO, RAFAEL CESAR", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "GUICHARD TIZON, CARLOS RAUL", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "PACHECO RIVERA, MILTON ZENON", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "RIOS CASTILLO, JUAN ALBERTO", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "RODRIGUEZ POTONS, RICARDO CLODOMIRO", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "RUBIO RODRIGUEZ, OSCAR ENRIQUE", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "SAAVEDRA BARRERA, JOSE VICTOR", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "SALAS VELASQUEZ, HECTOR", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "VELIT GIRIBALDI, JOSE MARIANO", "cat1": "70", "cat2": "66", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "ARISTA VALDIVIA, GUSTAVO", "cat1": "SUB-18", "cat2": "SUB 21", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "FIGARI USHIÑAHUA, ENZO FABRIZZIO", "cat1": "SUB-18", "cat2": "SUB 21", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "GABANCHO ARAMBURU, ARIEL FRANCISCO", "cat1": "SUB-18", "cat2": "SUB 15", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "GARCIA RAYGAL, CESAR RODRIGO", "cat1": "SUB-18", "cat2": "SUB 21", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "PORTUGAL VALDESPINO, MARCELO ALONSO", "cat1": "SUB-18", "cat2": "SUB 15", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "CAIPO MEJIA, PAOLO ADRIAN", "cat1": "SUB-21", "cat2": "LIBRE", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "CHUQUIPIONDO OLIVOS, CARLO PAOLO", "cat1": "SUB-21", "cat2": "LIBRE", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "DE LA CRUZ NUÑEZ DE LA TORRE, RAFAEL", "cat1": "SUB-21", "cat2": "SUB-18", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "ESPINEL NIETO, GUILLERMO MANUEL", "cat1": "SUB-21", "cat2": "LIBRE", "club": "CIRCOLO S. ITALIANO"}, {"nombre": "ESPINOZA AVILA, FELIX DAVID", "cat1": "66", "cat2": "70", "club": "CULTURAL LIMA"}, {"nombre": "REBATTA RAMIREZ, ANGEL JUSTO", "cat1": "66", "cat2": "70", "club": "CULTURAL LIMA"}, {"nombre": "ALARCON CASTAÑEDA, WALTER MANUEL", "cat1": "70", "cat2": "66", "club": "CULTURAL LIMA"}, {"nombre": "ALVINES SALAS, JOSE ANTONIO", "cat1": "70", "cat2": "66", "club": "CULTURAL LIMA"}, {"nombre": "GALLOSO ARBULU, MIGUEL ANGEL", "cat1": "70", "cat2": "66", "club": "CULTURAL LIMA"}, {"nombre": "GALVEZ QUISPE, RICARDO", "cat1": "70", "cat2": "66", "club": "CULTURAL LIMA"}, {"nombre": "MUÑOZ SALCEDO, PABLO LORGIO", "cat1": "70", "cat2": "66", "club": "CULTURAL LIMA"}, {"nombre": "RAMOS SOLIS, MANUEL JESUS", "cat1": "70", "cat2": "66", "club": "CULTURAL LIMA"}, {"nombre": "RETAMOZO VENEGAS, JUAN ALBERTO", "cat1": "70", "cat2": "66", "club": "CULTURAL LIMA"}, {"nombre": "BRAIZAT SANTA MARIA, JORGE LUIS", "cat1": "48", "cat2": "40", "club": "GERMANIA"}, {"nombre": "ROMAINVILLE ERNST, JAIME LUIS", "cat1": "48", "cat2": "40", "club": "GERMANIA"}, {"nombre": "AVILA MENDOZA DEL SOLAR, DAVID", "cat1": "SUB-18", "cat2": "Libre", "club": "GERMANIA"}, {"nombre": "HALBICH MIRANDA, FRIEDERICH LEONARDO", "cat1": "SUB-18", "cat2": "Libre", "club": "GERMANIA"}, {"nombre": "ISASI MENDOZA, YAGO ALONSO", "cat1": "SUB-18", "cat2": "SUB-15", "club": "GERMANIA"}, {"nombre": "KOOYIP HUAPAYA, DIEGO FABRICIO", "cat1": "SUB-18", "cat2": "Libre", "club": "GERMANIA"}, {"nombre": "MORON ZAMALLOA, SALVADOR NICOLÁS", "cat1": "SUB-18", "cat2": "SUB-15", "club": "GERMANIA"}, {"nombre": "VALQUI VINCES, SANTIAGO LEONARDO ANTONIO", "cat1": "SUB-18", "cat2": "Libre", "club": "GERMANIA"}, {"nombre": "VALVERDE PESANTES, GONZALO MATHIAS", "cat1": "SUB-18", "cat2": "SUB-15", "club": "GERMANIA"}, {"nombre": "KNEZVICH SANTIVAÑEZ, NIKOLA", "cat1": "30", "cat2": "LIBRE", "club": "JOCKEY CLUB"}, {"nombre": "BELTRAN REYES, SAUL ANTONIO", "cat1": "53", "cat2": "48", "club": "JOCKEY CLUB"}, {"nombre": "AGREDA PAZ, IVAN LEOPOLDO", "cat1": "58", "cat2": "53", "club": "JOCKEY CLUB"}, {"nombre": "ANDERSONN BELLI, RICARDO ENRIQUE", "cat1": "58", "cat2": "62", "club": "JOCKEY CLUB"}, {"nombre": "CASANOVA CLAROS, PAUL GASTON", "cat1": "58", "cat2": "62", "club": "JOCKEY CLUB"}, {"nombre": "MABRICH WATANABE, FRANZ", "cat1": "58", "cat2": "53", "club": "JOCKEY CLUB"}, {"nombre": "RODRIGUEZ SOLIS, JORGE LUIS", "cat1": "58", "cat2": "23", "club": "JOCKEY CLUB"}, {"nombre": "FUNG LOPEZ, LUIS GUSTAVO", "cat1": "66", "cat2": "62", "club": "JOCKEY CLUB"}, {"nombre": "LA CRUZ ALVAREZ, LUIS GONZALO", "cat1": "66", "cat2": "62", "club": "JOCKEY CLUB"}, {"nombre": "MIRANDA VILLANUEVA, JOEL EDMUNDO", "cat1": "66", "cat2": "70", "club": "JOCKEY CLUB"}, {"nombre": "BEAS LAVADO, ARTURO JOSÉ SANTOS", "cat1": "70", "cat2": "66", "club": "JOCKEY CLUB"}, {"nombre": "CASTAÑEDA ORTIZ, WALTER PEDRO", "cat1": "70", "cat2": "66", "club": "JOCKEY CLUB"}, {"nombre": "MORALES LUYO, LUIS JAIME", "cat1": "70", "cat2": "66", "club": "JOCKEY CLUB"}, {"nombre": "REATEGUI GRIPPA, ARMANDO GABRIEL", "cat1": "70", "cat2": "66", "club": "JOCKEY CLUB"}, {"nombre": "RONCAL VILLANUEVA, VICTOR AUGUSTO", "cat1": "70", "cat2": "66", "club": "JOCKEY CLUB"}, {"nombre": "STREULI PEROTTI, ROBERTO", "cat1": "LIBRE", "cat2": "30", "club": "JOCKEY CLUB"}, {"nombre": "STREULI PEROTTI, ROBERTO PIERO", "cat1": "LIBRE", "cat2": "30", "club": "JOCKEY CLUB"}, {"nombre": "CARLOS BALDEON, RICARDO LUIS", "cat1": "30", "cat2": "40", "club": "LAWN TENNIS"}, {"nombre": "CISNEROS AYALA, AGUSTÍN GARY", "cat1": "30", "cat2": "40", "club": "LAWN TENNIS"}, {"nombre": "MARTÍNEZ ZEGARRA, RONALD", "cat1": "30", "cat2": "40", "club": "LAWN TENNIS"}, {"nombre": "ROCHA MIRANDA, RIKI MARIO", "cat1": "30", "cat2": "40", "club": "LAWN TENNIS"}, {"nombre": "SALAS MAURTA, RODOLFO GIONATAN", "cat1": "30", "cat2": "40", "club": "LAWN TENNIS"}, {"nombre": "PADILLA ESCOBAR, ISRAEL", "cat1": "48", "cat2": "40", "club": "LAWN TENNIS"}, {"nombre": "RABANAL FLORES, MARIANO", "cat1": "48", "cat2": "40", "club": "LIMA CRICKET"}, {"nombre": "SANCHEZ SALAZAR, RENZO MARTIN", "cat1": "48", "cat2": "40", "club": "LIMA CRICKET"}, {"nombre": "AGUIRRE BASADUR, ARI ARNOLD", "cat1": "53", "cat2": "48", "club": "LIMA CRICKET"}, {"nombre": "MARROU RISCO, LUIS ALFREDO", "cat1": "53", "cat2": "48", "club": "LIMA CRICKET"}, {"nombre": "PACHECO PICO, ANIBAL", "cat1": "53", "cat2": "48", "club": "LIMA CRICKET"}, {"nombre": "SIERRA YUNIS, JAVIER KARIN", "cat1": "53", "cat2": "48", "club": "LIMA CRICKET"}, {"nombre": "MORALES BOZA, GINO RAUL", "cat1": "SUB-21", "cat2": "Libre", "club": "LIMA CRICKET"}, {"nombre": "PINATTE FERREYRA, LUCA", "cat1": "SUB-21", "cat2": "Libre", "club": "LIMA CRICKET"}, {"nombre": "RAMIREZ CASTILLO, MARIANO ALBERTO", "cat1": "SUB-21", "cat2": "Libre", "club": "LIMA CRICKET"}, {"nombre": "SARRO DEL SOLAR, GABRIEL", "cat1": "SUB-21", "cat2": "Libre", "club": "LIMA CRICKET"}, {"nombre": "CERVANTES TORRES, VICTOR MANUEL", "cat1": "30", "cat2": "40", "club": "PETROPERÚ"}, {"nombre": "RUEDA ARANA, RICARDO JUAN", "cat1": "30", "cat2": "40", "club": "REAL CLUB"}, {"nombre": "ALFARO PRATTO, CESAR FRANCISCO", "cat1": "40", "cat2": "30", "club": "REAL CLUB"}, {"nombre": "REYES MORA, AUGUSTO", "cat1": "40", "cat2": "48", "club": "REAL CLUB"}, {"nombre": "CASTRO MACCHIAVELLO, RUBEN ALBERTO", "cat1": "48", "cat2": "53", "club": "REAL CLUB"}, {"nombre": "DIAZ DEL SOLAR, IVAN", "cat1": "48", "cat2": "53", "club": "REAL CLUB"}, {"nombre": "DUFFOO VALVERDE, ANTONIO RENE", "cat1": "48", "cat2": "53", "club": "REAL CLUB"}, {"nombre": "MEDINA PAZ, GERARDO ALFONSO", "cat1": "48", "cat2": "53", "club": "REAL CLUB"}, {"nombre": "SARRIA ARANA, MIGUEL LUCIANO", "cat1": "48", "cat2": "40", "club": "REAL CLUB"}, {"nombre": "MIRANDA VELAPATIÑO, GARY JACK", "cat1": "53", "cat2": "62", "club": "REAL CLUB"}, {"nombre": "TERRONES MOROTE , LUIS MIGUEL", "cat1": "53", "cat2": "62", "club": "REAL CLUB"}, {"nombre": "ALDAVE RUIZ, JOSE FRANCISCO", "cat1": "62", "cat2": "53", "club": "REAL CLUB"}, {"nombre": "CABAÑAS OLIVOS, CARLOS MARCOS", "cat1": "62", "cat2": "66", "club": "REAL CLUB"}, {"nombre": "LEÓN QUIÑONES, CÉSAR ALEJANDRO", "cat1": "62", "cat2": "66", "club": "REAL CLUB"}, {"nombre": "LEÓN QUIÑONES, JOSÉ ANTONIO", "cat1": "62", "cat2": "66", "club": "REAL CLUB"}, {"nombre": "QUEIROLO RÍOS, ELIO AMADEO", "cat1": "62", "cat2": "66", "club": "REAL CLUB"}, {"nombre": "RODRIGUEZ GARCÍA, HERNÁN MIGUEL", "cat1": "62", "cat2": "66", "club": "REAL CLUB"}, {"nombre": "RUIZ SÁNCHEZ, CÉSAR EMILIO", "cat1": "62", "cat2": "66", "club": "REAL CLUB"}, {"nombre": "RUSSO ORTIZ DE ZEVALLOS, LUIS ALBERTO", "cat1": "62", "cat2": "53", "club": "REAL CLUB"}, {"nombre": "BRUSH MÁRMOL, OSCAR", "cat1": "66", "cat2": "62", "club": "REAL CLUB"}, {"nombre": "MALDONADO LOSTAUNAU, GONZALO", "cat1": "30", "cat2": "LIBRE", "club": "REGATAS LIMA"}, {"nombre": "PASACHE PEREZ, WALTER ANTONIO", "cat1": "30", "cat2": "LIBRE CANTUTA", "club": "REGATAS LIMA"}, {"nombre": "ORTEGA MEZA, GUSTAVO ADOLFO", "cat1": "40", "cat2": "M-30", "club": "REGATAS LIMA"}, {"nombre": "ROMERO INDACOCHEA, EDUARDO OCTAVIO", "cat1": "40", "cat2": "48", "club": "REGATAS LIMA"}, {"nombre": "ADACHI KANASHIRO, CARLOS ALFREDO", "cat1": "53", "cat2": "58", "club": "REGATAS LIMA"}, {"nombre": "ARANDA TAMAYO, JOSE MIGUEL MARTIN", "cat1": "53", "cat2": "58", "club": "REGATAS LIMA"}, {"nombre": "BARTHELMESS SACO, RICARDO RAMON", "cat1": "53", "cat2": "48", "club": "REGATAS LIMA"}, {"nombre": "ORMEÑO DURAND, RAFAEL", "cat1": "53", "cat2": "48", "club": "REGATAS LIMA"}, {"nombre": "RINALDI MANSILLA, JAIME FRANCISCO", "cat1": "53", "cat2": "48", "club": "REGATAS LIMA"}, {"nombre": "SILVA SILVA, ALVARO ERNESTO", "cat1": "53", "cat2": "58", "club": "REGATAS LIMA"}, {"nombre": "BARCO ANDRADE, FERNANDO JOSE", "cat1": "58", "cat2": "M-53", "club": "REGATAS LIMA"}, {"nombre": "FERRER COLMENARES, VICENTE ANTONIO", "cat1": "58", "cat2": "M-53", "club": "REGATAS LIMA"}, {"nombre": "KAHATT ESPINOSA, CESAR SALEH", "cat1": "58", "cat2": "M-53", "club": "REGATAS LIMA"}, {"nombre": "MARADIEGUE HERRERA, HUGO", "cat1": "LIBRE", "cat2": "30", "club": "REGATAS VILLA"}, {"nombre": "PORTUGAL BARAYBAR, DIEGO JOSE", "cat1": "LIBRE", "cat2": "M-30", "club": "REGATAS VILLA"}, {"nombre": "RAFFO ESCUZA, JEAN PIERRE", "cat1": "LIBRE", "cat2": "M-30", "club": "REGATAS VILLA"}, {"nombre": "CANTA TRUJILLO, ISMAEL ALFREDO", "cat1": "30", "cat2": "LIBRE", "club": "REVOLVER"}, {"nombre": "HERRERA REYES, JORDAN BLADIMIR", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "NINANYA POLO, ELVIS JHON", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "OLIVER CARDENAS, NICOLA MAX", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "PERALTA FERNANDEZ, JAVIER BERNABE", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "PICON FERNANDEZ, JOSE MIGUEL", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "RAMIREZ MELCHOR, FELIX JESUS", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "RUIZ TORRES, MARCO ANTONIO", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "TAVARA FLORES, JOSE ISRAEL", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "VASQUEZ JIRON, WILSON", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "VILA RAMOS, LUIS MIGUEL", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "VILCA RODRIGUEZ, MAURO CESAR", "cat1": "LIBRE", "cat2": "30", "club": "REVOLVER"}, {"nombre": "ESTRADA MANSILLA, EDUARDO RENE", "cat1": "40", "cat2": "30", "club": "RINCONADA"}, {"nombre": "BAZAN ALGUIAR, ERNESTO FABIO", "cat1": "48", "cat2": "40", "club": "RINCONADA"}, {"nombre": "CACERES MASCARO, MARCO AURELIO", "cat1": "48", "cat2": "40", "club": "RINCONADA"}, {"nombre": "CANCHO MAURIZ, JORGE ALEJANDRO", "cat1": "48", "cat2": "40", "club": "RINCONADA"}, {"nombre": "TEIXEIRA VELIT, JUAN ALBERTO", "cat1": "48", "cat2": "40", "club": "RINCONADA"}, {"nombre": "AREVALO QUIROZ, RAUL SANTIAGO", "cat1": "53", "cat2": "48", "club": "RINCONADA"}, {"nombre": "CABRERA TORRES, PAULO CESAR", "cat1": "53", "cat2": "48", "club": "RINCONADA"}, {"nombre": "MALAGA MALAGA, LUIS ISAAC", "cat1": "53", "cat2": "48", "club": "RINCONADA"}, {"nombre": "PERALTA CERREÑO, CARLOS FERNANDO", "cat1": "53", "cat2": "58", "club": "RINCONADA"}, {"nombre": "ROMO GONZALES, LEONARDO RODRIGO", "cat1": "53", "cat2": "48", "club": "RINCONADA"}, {"nombre": "VILDOSO MORALES, GUSTAVO EDUARDO", "cat1": "53", "cat2": "58", "club": "RINCONADA"}, {"nombre": "CALDERON OJEDA, JORGE UMBERTO", "cat1": "58", "cat2": "53", "club": "RINCONADA"}, {"nombre": "CHAPPELL VOYSEST , DANIEL SERGIO", "cat1": "58", "cat2": "66", "club": "RINCONADA"}, {"nombre": "ROJAS ADRIANZEN, ALEJANDRO", "cat1": "58", "cat2": "66", "club": "RINCONADA"}, {"nombre": "CASANOVA MONDOÑEDO, ARTURO ALONSO", "cat1": "LIBRE", "cat2": "30", "club": "RINCONADA"}, {"nombre": "MARCOS GARIBAY, RODOLFO SEBASTIAN", "cat1": "LIBRE", "cat2": "30", "club": "RINCONADA"}, {"nombre": "ZORRILLA RIVERA, SEBASTIAN", "cat1": "LIBRE", "cat2": "30", "club": "RINCONADA"}, {"nombre": "MIRANDA CARDENAS, LUIS FIDEL", "cat1": "58", "cat2": "62", "club": "UNIVERSITARIO"}, {"nombre": "RIVERA GOMEZ, JAVIER EDUARDO", "cat1": "58", "cat2": "62", "club": "UNIVERSITARIO"}, {"nombre": "VALLE VIACAVA, GINO ANSALDO", "cat1": "58", "cat2": "62", "club": "UNIVERSITARIO"}, {"nombre": "LÓPEZ TELLO, RONALD EDMUNDO", "cat1": "62", "cat2": "62", "club": "UNIVERSITARIO"}];
+</script>
+<script>
+/* ===================== Normalización y matching ===================== */
+
+function normalizeName(str){
+  if(!str) return '';
+  let s = str.toString();
+  // quitar tildes/diacríticos
+  s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // mayúsculas
+  s = s.toUpperCase();
+  // reemplazar Ñ ya se maneja por NFD->N + combining tilde, pero por si acaso
+  s = s.replace(/Ñ/g, 'N');
+  // quitar puntuación, comas, puntos, etc.
+  s = s.replace(/[.,;:()\/\\"'`´-]/g, ' ');
+  // colapsar espacios
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+}
+
+// Devuelve un set ordenado de tokens (palabras) para comparar sin importar el orden
+function tokenSet(str){
+  const norm = normalizeName(str);
+  if(!norm) return [];
+  return norm.split(' ').filter(Boolean).sort();
+}
+
+// Distancia de Levenshtein
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  if(m === 0) return n;
+  if(n === 0) return m;
+  let prev = new Array(n+1);
+  let curr = new Array(n+1);
+  for(let j=0;j<=n;j++) prev[j] = j;
+  for(let i=1;i<=m;i++){
+    curr[0] = i;
+    for(let j=1;j<=n;j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      curr[j] = Math.min(
+        prev[j] + 1,
+        curr[j-1] + 1,
+        prev[j-1] + cost
+      );
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
+}
+
+// similitud 0-100 entre dos strings (basado en Levenshtein)
+function similarity(a, b){
+  if(a === b) return 100;
+  const maxLen = Math.max(a.length, b.length);
+  if(maxLen === 0) return 100;
+  const dist = levenshtein(a, b);
+  return (1 - dist / maxLen) * 100;
+}
+
+// Compara dos nombres sin importar el orden de palabras, devuelve {score, exact}
+function compareNames(nameA, nameB){
+  const tokensA = tokenSet(nameA);
+  const tokensB = tokenSet(nameB);
+  if(tokensA.length === 0 || tokensB.length === 0){
+    return {score: 0, exact: false};
+  }
+
+  const joinedA = tokensA.join(' ');
+  const joinedB = tokensB.join(' ');
+
+  if(joinedA === joinedB){
+    return {score: 100, exact: true};
+  }
+
+  // Estrategia 1: similitud directa de las cadenas normalizadas y reordenadas
+  const directScore = similarity(joinedA, joinedB);
+
+  // Estrategia 2: emparejamiento de tokens (greedy best-match)
+  // útil cuando un nombre tiene tokens extra o faltantes (segundo apellido, etc.)
+  const tokenScore = tokenMatchScore(tokensA, tokensB);
+
+  const score = Math.max(directScore, tokenScore);
+  return {score, exact: false};
+}
+
+// Empareja cada token del conjunto más corto con su mejor par en el más largo
+function tokenMatchScore(tokensA, tokensB){
+  let shorter = tokensA, longer = tokensB;
+  if(tokensA.length > tokensB.length){ shorter = tokensB; longer = tokensA; }
+
+  if(shorter.length === 0) return 0;
+
+  const usedIdx = new Set();
+  let totalScore = 0;
+
+  for(const tok of shorter){
+    let best = 0, bestIdx = -1;
+    for(let i=0;i<longer.length;i++){
+      if(usedIdx.has(i)) continue;
+      const s = similarity(tok, longer[i]);
+      if(s > best){ best = s; bestIdx = i; }
+    }
+    if(bestIdx >= 0) usedIdx.add(bestIdx);
+    totalScore += best;
+  }
+
+  // Penalizar si el nombre más largo tiene muchos tokens extra no usados
+  const avgScore = totalScore / shorter.length;
+  const extraTokens = longer.length - shorter.length;
+  const penalty = Math.min(extraTokens * 4, 20); // máx 20 puntos de penalización
+  return Math.max(0, avgScore - penalty);
+}
+
+/* ===================== Estado ===================== */
+
+let activeDB = PLAYERS_DB; // lista activa (por defecto la embebida)
+let pdfFile = null;
+let pdfNames = []; // nombres extraídos del pdf (strings crudos)
+
+/* ===================== Extracción de nombres del PDF ===================== */
+
+// Heurística: una línea es candidata a "nombre de persona" si:
+// - contiene al menos 2 palabras
+// - la mayoría de sus caracteres son letras (incluye tildes y Ñ)
+// - no es completamente numérica
+// - no parece un encabezado de categoría típico (CAT, CATEGORIA, LIBRE, SUB-XX seguido de nada más, etc.)
+function looksLikePersonName(line){
+  const trimmed = line.trim();
+  if(trimmed.length < 5) return false;
+
+  // descartar líneas que son solo números, fechas, encabezados de tabla
+  if(/^\d+$/.test(trimmed)) return false;
+
+  // descartar líneas que son encabezados de categoría comunes
+  const upper = trimmed.toUpperCase();
+  const headerPatterns = [
+    /^CATEGOR[IÍ]A/, /^CAT\.?\s*\d*$/, /^SUB[\s-]?\d+/, /^LIBRE$/, /^M[\s-]?\d+$/,
+    /^CLUB/, /^N[°º]?\s*\d/, /^P[ÁA]GINA/, /^TORNEO/, /^CAMPEONATO/, /^FECHA/,
+    /^LISTA/, /^RELACI[ÓO]N/, /^APELLIDOS/, /^NOMBRES?$/, /^N[°º]/
+  ];
+  for(const re of headerPatterns){ if(re.test(upper)) return false; }
+
+  // contar letras vs otros caracteres
+  const letters = (trimmed.match(/[A-Za-zÀ-ÿ\u00f1\u00d1]/g) || []).length;
+  const ratio = letters / trimmed.length;
+  if(ratio < 0.6) return false;
+
+  // quitar numeración inicial tipo "1." o "1)" o "01-"
+  const cleaned = trimmed.replace(/^\s*\d{1,3}[\.\)\-:]?\s*/, '');
+  const tokens = cleaned.split(/\s+/).filter(Boolean);
+  if(tokens.length < 2) return false;
+
+  // cada token debe ser mayormente alfabético
+  let validTokens = 0;
+  for(const t of tokens){
+    const tl = (t.match(/[A-Za-zÀ-ÿ\u00f1\u00d1]/g) || []).length;
+    if(tl / t.length >= 0.5) validTokens++;
+  }
+  if(validTokens < 2) return false;
+
+  return true;
+}
+
+function cleanExtractedLine(line){
+  let s = line.trim();
+  // quitar numeración inicial
+  s = s.replace(/^\s*\d{1,3}[\.\)\-:]?\s*/, '');
+  // quitar posibles códigos finales (números sueltos al final, ej categorías pegadas)
+  s = s.replace(/\s+\d+\s*$/, '');
+  return s.trim();
+}
+
+async function extractNamesFromPdf(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+  const names = [];
+
+  for(let p = 1; p <= pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+
+    // Agrupar items por posición Y aproximada para reconstruir líneas
+    const lines = {};
+    for(const item of content.items){
+      const y = Math.round(item.transform[5]);
+      if(!lines[y]) lines[y] = [];
+      lines[y].push(item);
+    }
+
+    // ordenar por Y descendente (de arriba hacia abajo) y por X dentro de cada línea
+    const sortedYs = Object.keys(lines).map(Number).sort((a,b) => b - a);
+    for(const y of sortedYs){
+      const items = lines[y].sort((a,b) => a.transform[4] - b.transform[4]);
+      const lineText = items.map(i => i.str).join(' ').replace(/\s+/g, ' ').trim();
+      if(lineText) names.push(lineText);
+    }
+  }
+
+  // filtrar candidatos a nombres
+  const candidates = [];
+  for(const line of names){
+    // a veces una línea puede contener varios nombres separados por múltiples espacios grandes;
+    // pero con la reconstrucción por Y ya suelen quedar como líneas independientes.
+    if(looksLikePersonName(line)){
+      const cleaned = cleanExtractedLine(line);
+      if(cleaned.split(/\s+/).filter(Boolean).length >= 2){
+        candidates.push(cleaned);
+      }
+    }
+  }
+
+  // eliminar duplicados exactos manteniendo orden
+  const seen = new Set();
+  const unique = [];
+  for(const c of candidates){
+    const key = normalizeName(c);
+    if(!seen.has(key)){
+      seen.add(key);
+      unique.push(c);
+    }
+  }
+  return unique;
+}
+
+/* ===================== Excel (SheetJS) ===================== */
+
+function loadSheetJS(){
+  return new Promise((resolve, reject) => {
+    if(window.XLSX) return resolve();
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar la librería de Excel'));
+    document.head.appendChild(script);
+  });
+}
+
+async function parseExcelFile(file){
+  await loadSheetJS();
+  const arrayBuffer = await file.arrayBuffer();
+  const wb = XLSX.read(arrayBuffer, {type: 'array'});
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, {defval: ''});
+
+  if(rows.length === 0) throw new Error('El archivo Excel está vacío.');
+
+  // buscar la columna de nombres de forma flexible
+  const sampleRow = rows[0];
+  const keys = Object.keys(sampleRow);
+  const nameKey = keys.find(k => {
+    const nk = normalizeName(k);
+    return nk.includes('APELLIDO') || nk.includes('NOMBRE');
+  });
+
+  if(!nameKey) throw new Error('No se encontró una columna de nombres (APELLIDOS Y NOMBRES).');
+
+  const catKey1 = keys.find(k => normalizeName(k) === 'CAT' || normalizeName(k) === 'CAT 1' || normalizeName(k).startsWith('CAT')) || null;
+  const cat2Key = keys.find(k => k !== catKey1 && normalizeName(k).startsWith('CAT') && normalizeName(k).includes('2')) || null;
+  const clubKey = keys.find(k => normalizeName(k).includes('CLUB')) || null;
+
+  const records = [];
+  for(const row of rows){
+    const nombre = (row[nameKey] || '').toString().trim().replace(/\s+/g, ' ');
+    if(!nombre) continue;
+    records.push({
+      nombre,
+      cat1: catKey1 ? (row[catKey1] || '').toString().trim() : '',
+      cat2: cat2Key ? (row[cat2Key] || '').toString().trim() : '',
+      club: clubKey ? (row[clubKey] || '').toString().trim() : ''
+    });
+  }
+
+  if(records.length === 0) throw new Error('No se encontraron filas con nombres válidos.');
+  return records;
+}
+
+/* ===================== UI Wiring ===================== */
+
+const pdfDrop = document.getElementById('pdfDrop');
+const pdfInput = document.getElementById('pdfInput');
+const pdfInfo = document.getElementById('pdfInfo');
+const pdfInfoText = document.getElementById('pdfInfoText');
+const pdfReset = document.getElementById('pdfReset');
+
+const excelDrop = document.getElementById('excelDrop');
+const excelInput = document.getElementById('excelInput');
+const excelInfo = document.getElementById('excelInfo');
+const excelInfoText = document.getElementById('excelInfoText');
+const excelReset = document.getElementById('excelReset');
+const dbBadge = document.getElementById('dbBadge');
+const dbMeta = document.getElementById('dbMeta');
+
+const thresholdSlider = document.getElementById('threshold');
+const thresholdVal = document.getElementById('thresholdVal');
+const processBtn = document.getElementById('processBtn');
+const statusLine = document.getElementById('statusLine');
+const statusText = document.getElementById('statusText');
+const resultsCard = document.getElementById('resultsCard');
+const resultsBadge = document.getElementById('resultsBadge');
+const resultsContent = document.getElementById('resultsContent');
+
+thresholdSlider.addEventListener('input', () => {
+  thresholdVal.textContent = thresholdSlider.value + '%';
+});
+
+function setupDropzone(dropEl, inputEl, onFile){
+  dropEl.addEventListener('click', () => inputEl.click());
+  dropEl.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropEl.classList.add('dragover');
+  });
+  dropEl.addEventListener('dragleave', () => dropEl.classList.remove('dragover'));
+  dropEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropEl.classList.remove('dragover');
+    if(e.dataTransfer.files.length) onFile(e.dataTransfer.files[0]);
+  });
+  inputEl.addEventListener('change', (e) => {
+    if(e.target.files.length) onFile(e.target.files[0]);
+  });
+}
+
+setupDropzone(pdfDrop, pdfInput, (file) => {
+  if(!file.name.toLowerCase().endsWith('.pdf')){
+    alert('Por favor selecciona un archivo PDF.');
+    return;
+  }
+  pdfFile = file;
+  pdfInfoText.textContent = '📄 ' + file.name;
+  pdfInfo.style.display = 'flex';
+  pdfDrop.style.display = 'none';
+  processBtn.disabled = false;
+  resultsCard.style.display = 'none';
+});
+
+pdfReset.addEventListener('click', () => {
+  pdfFile = null;
+  pdfInput.value = '';
+  pdfInfo.style.display = 'none';
+  pdfDrop.style.display = 'block';
+  processBtn.disabled = true;
+  resultsCard.style.display = 'none';
+});
+
+setupDropzone(excelDrop, excelInput, async (file) => {
+  const lower = file.name.toLowerCase();
+  if(!lower.endsWith('.xlsx') && !lower.endsWith('.xls')){
+    alert('Por favor selecciona un archivo Excel (.xlsx o .xls).');
+    return;
+  }
+  try{
+    excelInfoText.textContent = 'Cargando ' + file.name + '...';
+    excelInfo.style.display = 'flex';
+    excelDrop.style.display = 'none';
+    const records = await parseExcelFile(file);
+    activeDB = records;
+    excelInfoText.textContent = '📊 ' + file.name + ' (' + records.length + ' jugadores)';
+    dbBadge.textContent = records.length + ' jugadores cargados (personalizado)';
+    dbMeta.textContent = 'Usando lista personalizada: ' + file.name + ' — ' + records.length + ' jugadores.';
+  }catch(err){
+    alert('Error al leer el Excel: ' + err.message);
+    activeDB = PLAYERS_DB;
+    excelInfo.style.display = 'none';
+    excelDrop.style.display = 'block';
+  }
+});
+
+excelReset.addEventListener('click', () => {
+  activeDB = PLAYERS_DB;
+  excelInput.value = '';
+  excelInfo.style.display = 'none';
+  excelDrop.style.display = 'block';
+  dbBadge.textContent = PLAYERS_DB.length + ' jugadores cargados';
+  dbMeta.textContent = 'Actualmente se usa la lista incluida por defecto (' + PLAYERS_DB.length + ' jugadores, columnas: APELLIDOS Y NOMBRES, CAT., CAT. 2, CLUB). Si subes un nuevo Excel, se usará en su lugar para esta sesión.';
+});
+
+processBtn.addEventListener('click', async () => {
+  if(!pdfFile) return;
+  processBtn.disabled = true;
+  statusLine.style.display = 'flex';
+  statusText.textContent = 'Leyendo el PDF...';
+  resultsCard.style.display = 'none';
+
+  try{
+    pdfNames = await extractNamesFromPdf(pdfFile);
+    statusText.textContent = 'Comparando ' + pdfNames.length + ' nombres detectados contra la base de datos...';
+
+    await new Promise(r => setTimeout(r, 50)); // dejar pintar el status
+
+    const threshold = Number(thresholdSlider.value);
+    const matches = [];
+
+    for(const pdfName of pdfNames){
+      let best = null;
+      for(const record of activeDB){
+        const cmp = compareNames(pdfName, record.nombre);
+        if(!best || cmp.score > best.score){
+          best = {record, score: cmp.score, exact: cmp.exact};
+        }
+      }
+      if(best && best.score >= threshold){
+        matches.push({
+          pdfName,
+          dbName: best.record.nombre,
+          cat1: best.record.cat1,
+          cat2: best.record.cat2,
+          club: best.record.club,
+          score: best.score,
+          exact: best.exact
+        });
+      }
+    }
+
+    // ordenar por score descendente
+    matches.sort((a,b) => b.score - a.score);
+
+    renderResults(matches, pdfNames.length);
+
+  }catch(err){
+    alert('Error al procesar el PDF: ' + err.message);
+  }finally{
+    statusLine.style.display = 'none';
+    processBtn.disabled = false;
+  }
+});
+
+function renderResults(matches, totalDetected){
+  resultsCard.style.display = 'block';
+  resultsBadge.textContent = matches.length + ' coincidencia' + (matches.length === 1 ? '' : 's');
+
+  if(matches.length === 0){
+    resultsContent.innerHTML = `
+      <div class="empty-state">
+        <span class="icon">🔍</span>
+        <div>No se encontraron coincidencias entre los ${totalDetected} nombres detectados en el PDF y la base de datos.</div>
+      </div>`;
+    return;
+  }
+
+  let html = `<div class="results-summary">
+    Se detectaron <strong>${totalDetected}</strong> nombres en el PDF.
+    <strong>${matches.length}</strong> coinciden con la base de datos.
+  </div>`;
+
+  html += `<table><thead><tr>
+    <th>Nombre (PDF)</th>
+    <th>Nombre (Base de datos)</th>
+    <th>Cat.</th>
+    <th>Cat. 2</th>
+    <th>Club</th>
+    <th>Coincidencia</th>
+  </tr></thead><tbody>`;
+
+  for(const m of matches){
+    const tagClass = m.exact || m.score >= 99.5 ? 'match-exact' : 'match-fuzzy';
+    const tagText = m.exact || m.score >= 99.5 ? 'Exacta' : Math.round(m.score) + '%';
+    html += `<tr>
+      <td>${escapeHtml(m.pdfName)}</td>
+      <td>${escapeHtml(m.dbName)}</td>
+      <td>${escapeHtml(m.cat1)}</td>
+      <td>${escapeHtml(m.cat2)}</td>
+      <td>${escapeHtml(m.club)}</td>
+      <td><span class="match-tag ${tagClass}">${tagText}</span></td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  resultsContent.innerHTML = html;
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : str;
+  return div.innerHTML;
+}
+
+// pdf.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+</script>
+</body>
+</html>
